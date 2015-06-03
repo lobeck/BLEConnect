@@ -39,7 +39,6 @@ public class SampleGattAttributes {
     	attributes.put("00001803-0000-1000-8000-00805f9b34fb", "Link loss");
     	attributes.put("00001804-0000-1000-8000-00805f9b34fb", "Tx Power");
     	attributes.put("00001805-0000-1000-8000-00805f9b34fb", "Current Time Service");
-        
     	
     	attributes.put("0000180d-0000-1000-8000-00805f9b34fb", "Heart Rate Service");
         attributes.put("0000180a-0000-1000-8000-00805f9b34fb", "Device Information Service");
@@ -54,11 +53,6 @@ public class SampleGattAttributes {
         attributes.put("00002a04-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
         attributes.put("00002a05-0000-1000-8000-00805f9b34fb", "Service Changed");
         attributes.put("00002A06-0000-1000-8000-00805f9b34fb", "Alert level");
-        attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
-        attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
-        attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
-        attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
-        attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String");
         
     }
 
