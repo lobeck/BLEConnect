@@ -143,22 +143,47 @@ public class BluetoothLeService extends Service {
 		final Intent intent = new Intent(action);
 
 		// This is special handling for the Heart Rate Measurement profile. Data
-		// parsing is
-		// carried out as per profile specifications:
-		// http://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml
+		// parsing is carried out as per profile specifications:
+		// https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml
 		if (UUID_HEART_RATE_MEASUREMENT.equals(characteristic.getUuid())) {
-			int flag = characteristic.getProperties();
+			final int flags = characteristic.getProperties();
+			Log.d(TAG, String.format("Flags: %d", flags));
+
 			int format = -1;
-			if ((flag & 0x01) != 0) {
-				format = BluetoothGattCharacteristic.FORMAT_UINT16;
-				Log.d(TAG, "Heart rate format UINT16.");
-			} else {
+			int offset;
+
+			if ((flags & 0x01) == 0) {
 				format = BluetoothGattCharacteristic.FORMAT_UINT8;
+				offset = 2;
 				Log.d(TAG, "Heart rate format UINT8.");
+			} else {
+				format = BluetoothGattCharacteristic.FORMAT_UINT16;
+				offset = 3;
+				Log.d(TAG, "Heart rate format UINT16.");
 			}
 			final int heartRate = characteristic.getIntValue(format, 1);
 			Log.d(TAG, String.format("Received heart rate: %d", heartRate));
-			intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
+			String report = String.format("HR:%d ", heartRate);
+
+			if ((flags & 0x08) != 0) {
+				// calories present
+				final int energy = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, offset);
+				offset += 2;
+				Log.d(TAG, String.format("Received energy: %d", energy));
+				report += String.format("J:%d ", energy);
+			}
+
+			if ((flags & 0x16) != 0) {
+				// RR present
+				final int rr_count = ((characteristic.getValue()).length - offset) / 2;
+				for (int i = 0; i < rr_count; i++) {
+					final int rr = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16, offset);
+					Log.d(TAG, String.format("Received RR: %d", rr));
+					offset += 2;
+					report += String.format("RR:%d ", rr);
+				}
+			}
+			intent.putExtra(EXTRA_DATA, report);
 		} else {
 			// For all other profiles, writes the data formatted in HEX.
 			final byte[] data = characteristic.getValue();

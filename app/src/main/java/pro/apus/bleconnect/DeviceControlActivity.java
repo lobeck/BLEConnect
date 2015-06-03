@@ -415,14 +415,19 @@ public class DeviceControlActivity extends Activity {
 
 	int x = 0;
 
-	private void displayData(String data) {
+	private void displayData(String incoming) {
 		try {
-			if (data != null) {
+			if (incoming == null)
+				return;
 
+			appendLog((new Date()).toString() + "," + incoming);
+
+			if (incoming.startsWith("HR:")) {
+				String data = incoming.substring(3, incoming.indexOf(' '));
+				Log.d(TAG, "Got:"+data);
 				long time = (new Date()).getTime();
 				int dataElement = Integer.parseInt(data);
 				mCurrentSeries.add(time, dataElement);
-				appendLog((new Date()).toString() + "," + data);
 				//datasource.createEvent(1, time, dataElement);
 				// Storing last 600 only - should average... 
 				while (mCurrentSeries.getItemCount() > 60*10) {
@@ -451,7 +456,7 @@ public class DeviceControlActivity extends Activity {
 				} 
 			}
 		} catch (Exception e) {
-			Log.e(TAG, "Exception while parsing: " + data);
+			Log.e(TAG, "Exception while parsing: " + incoming);
 		}
 	}
 
