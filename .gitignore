@@ -19,3 +19,8 @@
 
 bin/
 gen/
+.idea/
+.gradle/
+build/
+import-summary.txt
+local.properties
