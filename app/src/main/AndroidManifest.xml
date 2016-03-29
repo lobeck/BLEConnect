@@ -37,7 +37,7 @@ limitations under the License.
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- uses-permission android:name="android.permission.INTERNET" /-->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_INTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -58,22 +58,6 @@ limitations under the License.
         </activity>
         <activity android:name="pro.apus.bleconnect.DeviceControlActivity" 
             android:configChanges="keyboardHidden|orientation|screenSize"/>
-        <activity
-            android:name="com.dropbox.client2.android.AuthActivity"
-            android:configChanges="orientation|keyboard"
-            android:launchMode="singleTask" >
-            <intent-filter>
-
-                <!-- Change this to be db- followed by your app key -->
-                <data android:scheme="db-tjyi4o6psg0dm0r" />
-
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.BROWSABLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
         <service
             android:name="pro.apus.bleconnect.BluetoothLeService"
             android:enabled="true" />

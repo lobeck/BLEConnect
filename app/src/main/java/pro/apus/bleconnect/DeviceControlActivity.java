@@ -38,8 +38,6 @@ import android.graphics.Paint.Align;
 import android.net.Uri;
 import android.os.Bundle;
 
-import com.dropbox.client2.DropboxAPI.Entry;
-
 import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
@@ -74,14 +72,6 @@ import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
 
-import com.dropbox.client2.DropboxAPI;
-import com.dropbox.client2.android.AndroidAuthSession;
-import com.dropbox.client2.exception.DropboxException;
-import com.dropbox.client2.session.AccessTokenPair;
-import com.dropbox.client2.session.AppKeyPair;
-import com.dropbox.client2.session.Session.AccessType;
-import com.dropbox.client2.session.TokenPair;
-
 import pro.apus.heartrate.R;
 
 /**
@@ -108,11 +98,8 @@ public class DeviceControlActivity extends Activity {
 	private EventsDataSource datasource;
 	
 	// Dropbox
-	private DropboxAPI<AndroidAuthSession> mDBApi;
-	private AccessTokenPair dropboxTokens = null;
 	final static private String APP_KEY = "tjyi4o6psg0dm0r";
 	final static private String APP_SECRET = "jp6054yixb9t9e0";
-	final static private AccessType ACCESS_TYPE = AccessType.APP_FOLDER;
 	final static private String ACCOUNT_PREFS_NAME = "prefs";
 	final static private String ACCESS_KEY_NAME = "ACCESS_KEY";
 	final static private String ACCESS_SECRET_NAME = "ACCESS_SECRET";
@@ -276,31 +263,10 @@ public class DeviceControlActivity extends Activity {
 		// Set up database connection
         datasource = new EventsDataSource(this);
         datasource.open();
-        
-		// We create a new AuthSession so that we can use the Dropbox API.
-		AndroidAuthSession session = buildSession();
-		mDBApi = new DropboxAPI<AndroidAuthSession>(session);
 
 		mDataField = (TextView) findViewById(R.id.data_value);
 
 		mButtonSend = (ImageButton) findViewById(R.id.btnSend);
-		mButtonSend.setOnClickListener(new View.OnClickListener() {
-			public void onClick(View v) {
-				// emailLog();
-				if (dropboxTokens == null) {
-					mDBApi.getSession().startAuthentication(
-							DeviceControlActivity.this);
-					uploadFileRequested = true;
-				} else {
-					File file = new File(Environment
-							.getExternalStorageDirectory().getPath()
-							+ "/hrmlog.csv");
-					UploadFile upload = new UploadFile(
-							DeviceControlActivity.this, mDBApi, "/", file);
-					upload.execute();
-				}
-			}
-		});
 
 		mButtonStart = (ImageButton) findViewById(R.id.btnStart);
 		mButtonStart.setOnClickListener(new View.OnClickListener() {
@@ -346,25 +312,6 @@ public class DeviceControlActivity extends Activity {
 			Log.d(TAG, "Connect request result=" + result);
 		}
 
-		if (mDBApi.getSession().authenticationSuccessful()) {
-			try {
-				// Mandatory call to complete the auth
-				mDBApi.getSession().finishAuthentication();
-
-				// Store it locally in our app for later use
-				dropboxTokens = mDBApi.getSession().getAccessTokenPair();
-				storeKeys(dropboxTokens.key, dropboxTokens.secret);
-
-				if (uploadFileRequested) {
-					dropboxUpload();
-				}
-
-			} catch (IllegalStateException e) {
-				// showToast("Couldn't authenticate with Dropbox:" +
-				// e.getLocalizedMessage());
-				Log.i(TAG, "Error authenticating", e);
-			}
-		}
 	}
 
 	// this is called when the screen rotates.
@@ -437,7 +384,6 @@ public class DeviceControlActivity extends Activity {
 			mBluetoothLeService.disconnect();
 			return true;
 		case R.id.menu_dropbox:
-			dropboxUpload();
 			return true;
 		case R.id.menu_start_logging:
 			startLogging();
@@ -594,32 +540,6 @@ public class DeviceControlActivity extends Activity {
 		edit.putString(ACCESS_KEY_NAME, key);
 		edit.putString(ACCESS_SECRET_NAME, secret);
 		edit.commit();
-	}
-
-	private AndroidAuthSession buildSession() {
-		AppKeyPair appKeyPair = new AppKeyPair(APP_KEY, APP_SECRET);
-		AndroidAuthSession session;
-
-		String[] stored = getKeys();
-		if (stored != null) {
-			AccessTokenPair accessToken = new AccessTokenPair(stored[0],
-					stored[1]);
-			session = new AndroidAuthSession(appKeyPair, ACCESS_TYPE,
-					accessToken);
-		} else {
-			session = new AndroidAuthSession(appKeyPair, ACCESS_TYPE);
-		}
-
-		return session;
-	}
-
-	private void dropboxUpload() {
-		File file = new File(Environment.getExternalStorageDirectory()
-				.getPath() + "/hrmlog.csv");
-		UploadFile upload = new UploadFile(DeviceControlActivity.this, mDBApi,
-				"/", file);
-		upload.execute();
-		uploadFileRequested = false;
 	}
 
 	public void appendLog(String text) {
