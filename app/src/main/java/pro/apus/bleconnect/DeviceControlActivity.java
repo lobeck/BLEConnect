@@ -63,6 +63,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
@@ -91,6 +95,7 @@ public class DeviceControlActivity extends Activity {
 	private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
 	private boolean mConnected = false;
 	private BluetoothGattCharacteristic mNotifyCharacteristic;
+	private BluetoothGattCharacteristic mBatteryCharacteristic;
 	private final String LIST_NAME = "NAME";
 	private final String LIST_UUID = "UUID";
 
@@ -121,6 +126,9 @@ public class DeviceControlActivity extends Activity {
 	private XYMultipleSeriesRenderer mRenderer = new XYMultipleSeriesRenderer();
 	private XYSeries mCurrentSeries;
 	private XYSeriesRenderer mCurrentRenderer;
+
+	private ScheduledExecutorService scheduleTaskExecutor;
+	private ScheduledFuture mBatteryUpdateTask;
 
 	private void initChart() {
 
@@ -252,6 +260,8 @@ public class DeviceControlActivity extends Activity {
 
 		Log.i(TAG, "onCreate");
 
+		scheduleTaskExecutor= Executors.newScheduledThreadPool(5);
+
 		setContentView(R.layout.heartrate);
 
 		// getWindow().addFlags(LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -305,7 +315,7 @@ public class DeviceControlActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		currentlyVisible = true;
-		
+
 		registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
 		if (mBluetoothLeService != null) {
 			final boolean result = mBluetoothLeService.connect(mDeviceAddress);
@@ -411,6 +421,11 @@ public class DeviceControlActivity extends Activity {
 				}
 			}
 		});
+		if (!connected) {
+			if (mBatteryUpdateTask != null) {
+				mBatteryUpdateTask.cancel(false);
+			}
+		}
 	}
 
 	int x = 0;
@@ -494,10 +509,16 @@ public class DeviceControlActivity extends Activity {
 			// Loops through available Characteristics.
 			for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
 
-				if (UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT)
-						.equals(gattCharacteristic.getUuid())) {
+				Log.d(TAG, "Found characteristic: " + SampleGattCharacteristics.lookup(gattCharacteristic.getUuid().toString(), "unknown"));
+
+				if (UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT).equals(gattCharacteristic.getUuid())) {
 					Log.d(TAG, "Found heart rate");
 					mNotifyCharacteristic = gattCharacteristic;
+				}
+				if (UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb").equals(gattCharacteristic.getUuid())) {
+					mBatteryCharacteristic = gattCharacteristic;
+					mBluetoothLeService.readCharacteristic(gattCharacteristic);
+
 				}
 
 				charas.add(gattCharacteristic);
@@ -518,8 +539,7 @@ public class DeviceControlActivity extends Activity {
 		final IntentFilter intentFilter = new IntentFilter();
 		intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
 		intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
-		intentFilter
-				.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+		intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
 		intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
 		return intentFilter;
 	}
@@ -575,8 +595,16 @@ public class DeviceControlActivity extends Activity {
 		mButtonSend.setVisibility(View.VISIBLE);
 		mButtonStop.setVisibility(View.VISIBLE);
 		mButtonStart.setVisibility(View.GONE);
-		mBluetoothLeService.setCharacteristicNotification(
-				mNotifyCharacteristic, true);
+
+		mBluetoothLeService.setCharacteristicNotification(mNotifyCharacteristic, true);
+
+		mBatteryUpdateTask = scheduleTaskExecutor.scheduleAtFixedRate(new Runnable() {
+			public void run() {
+
+				mBluetoothLeService.readCharacteristic(mBatteryCharacteristic);
+			}
+		}, 0, 10, TimeUnit.SECONDS);
+
 		invalidateOptionsMenu();
 		logging = true;
 	}
@@ -584,8 +612,10 @@ public class DeviceControlActivity extends Activity {
 	private void stopLogging() {
 		mButtonStop.setVisibility(View.GONE);
 		mButtonStart.setVisibility(View.VISIBLE);
-		mBluetoothLeService.setCharacteristicNotification(
-				mNotifyCharacteristic, false);
+		mBluetoothLeService.setCharacteristicNotification(mNotifyCharacteristic, false);
+		if (mBatteryUpdateTask != null) {
+			mBatteryUpdateTask.cancel(false);
+		}
 		invalidateOptionsMenu();
 		logging = false;
 	}
